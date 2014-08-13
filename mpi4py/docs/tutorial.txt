@@ -1,0 +1,252 @@
+==Introduction==
+
+Test case packages will be extremely useful for monitoring and ensuring 
+cluster health going forward.  They will enable Scientific Computing 
+staff to quickly detect and react to performance and availability issues 
+in the production environment.  Additionally, packages will provide a 
+toolset that SciComp staff may use to experiment with configuration 
+changes in a test environment, giving additional confidence that 
+production deployment will be non-impactful. 
+
+The creation of test cases to run on clusters maintained by Scientific 
+Computing is a relatively straightforward process.  Package creation has 
+a great deal of flexibility, however, a few strict requirements must 
+be met.  A number of guidelines also exist, but adherence to them 
+is optional.
+
+This tutorial begins with a step-by-step example and later discusses 
+the details of what can and what must go into a test case package.
+
+==Status of this Document==
+
+Initial DRAFT - March 15th, 2012
+
+==A Simple Example==
+
+In this example, we will create a test case called host_id, which will 
+run the hostid command on a specific node.
+
+* Create a directory called host_id and cd into it
+
+
+* Download the test case package zip file and extract it 
+  (URL yet to be determined)
+
+
+* Edit the README, which will look like so:
+
+==============================================================================
+name: host_id
+maintainers: Brian Hodges <bhodges@fhcrc.org>
+modified: 2012-03-15
+version: 0.1
+dependencies: none worth mentioning
+script: test.sh
+description: checks output from the hostid command
+==============================================================================
+
+
+* Create a script in local/bin/ called check_hostid.sh
+
+==============================================================================
+#!/bin/bash
+PACKAGE_ROOT=$(readlink -f `dirname $0` | sed 's/\/local\/bin$//' )
+RESULT=$PACKAGE_ROOT/output/result.txt
+hostid > $RESULT
+==============================================================================
+
+
+* Make the script executable:
+
+==============================================================================
+chmod +x local/bin/check_hostid.sh
+==============================================================================
+
+
+* Execute the script and check the result file (we'll use hyraxD10):
+
+==============================================================================
+srun -p pubint -N1 -n1 -w hyraxD10 local/bin/check_hostid.sh ; cat output/result.txt
+==============================================================================
+
+
+* Edit the file '''checksum''' and reference the output file to validate 
+  in RESULTS_FILES:
+
+==============================================================================
+RESULTS_FILES="result.txt"
+==============================================================================
+
+'''Note''':  if the script outputs more than one file, add them all, 
+separated by spaces:
+
+==============================================================================
+RESULTS_FILES="result1.txt result2.txt result3.txt"
+==============================================================================
+
+Alternatively if working with more than just a few text files, cat'ing them 
+together to a single result file is an option.
+
+
+* Add the checksum to the '''checksum''' file, determined by this command:
+
+==============================================================================
+./test.sh --checksum
+checksum: 2f29817a59c1c5380613b0d732efe57d
+==============================================================================
+
+Edit '''checksum''':
+
+==============================================================================
+MD5_SUM="2f29817a59c1c5380613b0d732efe57d"
+==============================================================================
+
+
+* Next, edit '''run_test''' to call check_hostid.sh to run on hyraxD10:
+
+==============================================================================
+srun -p pubint -N1 -n1 -w hyraxD10 $PACKAGE_ROOT/local/bin/check_hostid.sh \
+    >> $PACKAGE_ROOT/output/test.log 2>&1
+==============================================================================
+
+'''Note''': if check_hostid.sh was to echo the result to standard output 
+instead of writing directly to the result.txt file, we would modify 
+'''run_test''' like so:
+
+==============================================================================
+srun -p pubint -N1 -n1 -w hyraxD10 $PACKAGE_ROOT/local/bin/check_hostid.sh \
+>$PACKAGE_ROOT/output/result.txt 2>$PACKAGE_ROOT/output/test.log
+==============================================================================
+
+'''Note''': $PACKAGE_ROOT is setup and passed to run_test by test.sh
+
+
+* The package is now ready to go! Execute test.sh and check the output:
+
+==============================================================================
+$ ./test.sh ; cat output/test.log 
+2012-03-15 11:38:20 Starting test case execution
+2012-03-15 11:38:23 Test case execution successful
+==============================================================================
+
+
+* Let's change the srun -w flag to hyraxD08, rerun and check the output:
+==============================================================================
+./test.sh ; cat output/test.log 
+2012-03-15 11:41:52 Starting test case execution
+2012-03-15 11:41:56 An error has occurred, this log file may contain further details. Exiting
+==============================================================================
+
+The md5sums don't match, an error has been detected.
+
+
+
+==Package Requirements==
+
+
+===Test cases must be launchable from a single script===  
+
+A package template will be provided that includes a simple script called 
+'''test.sh'''.  Using test.sh is recommended, although any executable 
+will work as long as it does the following:
+
+* Provides its own validation and a return code
+** 0 for success, a non-zero integer if failure
+* Logs (appends) useful information to a log file called test.log in the 
+  output subdirectory under the package root
+** Appends timestamps to any log files it will work with in the output 
+   directory to indicate when the script began and finished execution 
+   or when an error occurred.
+* Provides a --clean option that will remove any temporary files and leave 
+  .log-suffixed files in place
+* Determines the package root directory it resides in to make its location 
+  portable.  For example, the script must be able to determine the full 
+  path to the output subdirectory and not rely on relative paths.
+** In a shell script, something like this may be useful:
+
+==============================================================================
+BASE_DIR=$(readlink -f `dirname $0`)
+==============================================================================
+
+===Test cases must be submitted to the cluster in a way that execution occurs in the foreground===
+
+While using sbatch is the preferred way for cluster users to submit jobs, 
+the test case system requires tasks run in the foreground.  Using srun or 
+salloc is therefore necessary.
+
+===Package names must be unique and adhere to a certain format===
+
+Package names must be unique, alphanumeric (underscores are ok) and have no 
+spaces.  The top-level package root directory is the package name.  
+
+A few valid examples:
+
+* test_case
+* testCase
+* TestCase01
+
+
+===Test case scripts and executables should not do any cd'ing===
+
+Similar to what test.sh does, any executed code should determine 
+the full path to the package root for the currently running 
+instance, and work with that.
+
+
+===A README file must be included===
+
+The README file must be in the package root directory, looking similar to this:
+
+==============================================================================
+name: sample_test_case
+maintainers: Brian Hodges <bhodges@fhcrc.org>, Dirk Petersen <petersen@fhcrc.org>
+modified: 2012-03-15
+version: 0.1
+dependencies: python >= 2.7, mpi4py, pyyaml
+script: test.sh
+description: Does something...
+==============================================================================
+
+While name, maintainers, modified, version, dependencies, script and 
+description are required, formatting for the values is left to the package 
+maintainer, as long as the text is useful.  It is recommended that package 
+version numbers start with 0.1 and increment by a tenth with each change, 
+but this is not a strict requirement.  If you wish to use a source control 
+change set number for example, that would be fine too.
+
+
+
+==Package Guidelines==
+
+
+===Build a useful test case that doesn't take days to run===
+The lower the run time and amount of resources required, the better, as long
+as it makes for a useful test case.  If working with a 200MB data set provides 
+a similar amount of confidence as working with 2GB, the lower processing time 
+is preferred in order to give all packages the opportunity to be run more 
+frequently.
+
+
+===Follow the recommended directory structure provided by the package template===
+
+Let's say we have a package called test01.  The directory structure underneath 
+the top-level test01/ directory might look something like this:
+
+==============================================================================
+test.sh                    # script to launch *required, but can be named differently*
+run_test                   # commands to call that run the test case
+checksum                   # contains the correct checksum for any results files and specifies 
+                           # results files
+clean_up                   # commands executed to clean up the package, prior to each run
+README                     # info. about this package *required*
+output/                    # output directory, includes results files and test.log *required*
+input/                     # input data directory, script can otherwise use silo for example
+local/                     # any dependencies and other components that make up the package go here
+local/src/                 # if test case builds any executables, source can go here
+local/bin/                 # put any script or executables in here.  Executables must be able 
+                           # to determine the package root to know where to write output files 
+                           # and they must be able to set up their environment                          
+local/tmp                  # temp data can go here, will get cleaned up when test.sh --clean is run
+local/lib                  # library dependencies here
+docs/                      # package docs, including this tutorial
+==============================================================================

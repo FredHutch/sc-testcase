@@ -1,0 +1,23 @@
+# In the simplest example, the final output file should match this md5sum. 
+# Output files with time stamps, version numbers and other slight variations 
+# will require additional logic in test.sh.  If multiple results files, take 
+# md5sums # of each, concatenate them (in the same order!) and then take 
+# the md5sum of the concatenated string.
+
+# One or more results file, must be located in output directory. 
+# Space-delimited.
+#
+# Examples:
+#
+# RESULTS_FILES="results.txt"
+#
+# RESULTS_FILES="results1.txt results2.txt results3.txt"
+#
+RESULTS_FILES="results1.txt results2.txt"
+
+# Determine MD5_SUM by running ./test.sh --checksum
+# Simply running md5sum from the command-line will not 
+# generate a proper checksum as test.sh uses a hash of a hash.
+MD5_SUM="755db9a9ae34db1b97ab38c9ac304649"
+
+

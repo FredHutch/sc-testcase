@@ -1,0 +1,7 @@
+name:
+maintainers: <@fhcrc.org>, <@fhcrc.org>
+modified:
+version: 0.1
+dependencies:
+script: test.sh
+description: what does this test?

@@ -1,0 +1,12 @@
+# Go into the mpi4py directory
+cd $PACKAGE_ROOT 
+# Create a site-packages directory
+mkdir -p local/lib/python2.7/site-packages
+# Setup PYTHONPATH
+export PYTHONPATH="local/lib/python2.7/site-packages"
+# Install mpi4py
+easy_install --prefix=local mpi4py
+
+# Edit run_test to setup PYTHONPATH
+PYTHONPATH="$PACKAGE_ROOT/local/lib/python2.7/site-packages"
+

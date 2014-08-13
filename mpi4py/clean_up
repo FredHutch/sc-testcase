@@ -1,0 +1,15 @@
+# clean_up
+#
+# Commands to remove any temporary or results files from the last run.
+# Must leave the output/test.log file intact, but otherwise resets 
+# the package to its original state.
+
+# PACKAGE_ROOT should prefix any calls to executables within the package.
+# It does not include a trailing slash.
+PACKAGE_ROOT=$1
+
+echo "Deleting non-log files and directories in output directory."
+find $PACKAGE_ROOT/output -type d -not -regex '.*\/output$' -exec rm -rf {} \;
+find $PACKAGE_ROOT/output -type f -not -iregex '.*\/output\/.*.log$' -exec rm -f {} \;
+echo "Deleting all files in local/tmp directory."
+rm -rf $PACKAGE_ROOT/local/tmp/*

@@ -1,0 +1,26 @@
+# runtest.sh
+# 
+# Test cases are run from this file.
+#
+# Examples
+#
+# foo.sh writes results out to a file: 
+#
+#   srun -n 1 $PACKAGE_ROOT/local/bin/foo.sh \
+#       >>$PACKAGE_ROOT/output/test.log 2>&1
+#
+# bar.sh writes results to STDOUT:
+#
+#   srun -n 1 $PACKAGE_ROOT/local/bin/bar.sh \
+#       >$PACKAGE_ROOT/output/results.txt \
+#       2>>$PACKAGE_ROOT/output/test.log
+#
+
+# PACKAGE_ROOT should prefix any calls to executables within the package.
+# It does not include a trailing slash.
+PACKAGE_ROOT=$1
+
+PYTHONPATH="$PACKAGE_ROOT/local/lib/python2.7/site-packages"
+
+srun -N 2 mpirun -n 12 $PACKAGE_ROOT/local/bin/hello_kitty.py 1 2 >> $PACKAGE_ROOT/output/test.log 2>&1
+srun -N 2 mpirun -n 12 $PACKAGE_ROOT/local/bin/hello_kitty.py 2 2 >> $PACKAGE_ROOT/output/test.log 2>&1
